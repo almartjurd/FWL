@@ -591,6 +591,21 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
   const p=PLAYERS[idx];
   const totalCmd=Object.values(cmdDmg||{}).reduce((a,b)=>a+b,0);
   const [showCmd,setShowCmd]=useState(false);
+  const [delta,setDelta]=useState(0);
+  const [deltaVisible,setDeltaVisible]=useState(false);
+  const deltaTimer=useRef(null);
+  const holdTimer=useRef(null);
+  const holdFired=useRef(false);
+
+  function triggerDelta(d){
+    setDelta(prev=>prev+d);
+    setDeltaVisible(true);
+    if(deltaTimer.current) clearTimeout(deltaTimer.current);
+    deltaTimer.current=setTimeout(()=>{
+      setDeltaVisible(false);
+      setTimeout(()=>setDelta(0),400);
+    },2000);
+  }
 
   const lifeColor=life<=5?DEAD_RED:life<=10?ORANGE:p.color;
 
@@ -599,7 +614,11 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
       {/* Big tap zones: left = minus, right = plus */}
       <div style={{position:"absolute",inset:0,display:"flex",transform:\`rotate(\${rotation}deg)\`,transformOrigin:"50% 50%"}}>
         {/* Minus zone */}
-        <div className="big-tap" onClick={()=>onLife(-1)} style={{background:"transparent",borderRight:"1px solid rgba(255,255,255,.06)"}}>
+        <div className="big-tap"
+        onPointerDown={()=>{holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(-10);triggerDelta(-10);},800);}}
+        onPointerUp={()=>{clearTimeout(holdTimer.current);if(!holdFired.current){onLife(-1);triggerDelta(-1);}}}
+        onPointerLeave={()=>clearTimeout(holdTimer.current)}
+        style={{background:"transparent",borderRight:"1px solid rgba(255,255,255,.06)"}}>
           <span style={{fontSize:compact?26:32,color:"rgba(255,255,255,.12)",fontWeight:900,fontFamily:"'Cinzel',serif"}}>-</span>
         </div>
 
@@ -614,7 +633,7 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
           <div style={{display:"flex",flexDirection:"column",alignItems:"stretch",gap:4,pointerEvents:"all"}}>
             <div style={{display:"flex",gap:8}}>
               {[-5,+5].map(d=>(
-                <button key={d} onClick={e=>{e.stopPropagation();onLife(d);}} style={{flex:1,padding:compact?"3px 10px":"4px 14px",borderRadius:6,background:\`\${p.color}18\`,border:\`1px solid \${p.color}55\`,color:p.text,fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:compact?13:15,cursor:"pointer"}}>
+                <button key={d} onClick={e=>{e.stopPropagation();onLife(d);triggerDelta(d);}} style={{flex:1,padding:compact?"3px 10px":"4px 14px",borderRadius:6,background:\`\${p.color}18\`,border:\`1px solid \${p.color}55\`,color:p.text,fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:compact?13:15,cursor:"pointer"}}>
                   {d>0?"+":""}{d}
                 </button>
               ))}
@@ -623,6 +642,20 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
           <button onClick={e=>{e.stopPropagation();setShowCmd(s=>!s);}} style={{width:"100%",padding:compact?"2px 8px":"3px 12px",borderRadius:6,background:totalCmd>0?"rgba(140,80,200,.18)":"rgba(255,255,255,.05)",border:\`1px solid \${totalCmd>=21?DEAD_RED:totalCmd>0?"rgba(140,80,200,.5)":"rgba(255,255,255,.12)"}\`,color:totalCmd>=21?DEAD_RED:totalCmd>0?"#c090f0":"rgba(255,255,255,.35)",fontFamily:"'Cinzel',serif",fontWeight:600,fontSize:compact?10:11,cursor:"pointer",pointerEvents:"all",letterSpacing:.5}}>
             &#x2694;&#xFE0F; CMD
           </button>
+          {/* Delta indicator */}
+          <div style={{height:22,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+            {delta!==0&&(
+              <span style={{
+                fontFamily:"'Cinzel Decorative',serif",fontWeight:900,
+                fontSize:compact?15:17,
+                color:delta<0?DEAD_RED:VICTORY_GREEN,
+                textShadow:\`0 0 14px \${delta<0?DEAD_RED:VICTORY_GREEN}99\`,
+                opacity:deltaVisible?1:0,
+                transition:"opacity .4s ease",
+                letterSpacing:1,
+              }}>{delta>0?"+":""}{delta}</span>
+            )}
+          </div>
           </div>
         </div>
 
@@ -639,7 +672,11 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
           </div>
         )}
         {/* Plus zone */}
-        <div className="big-tap" onClick={()=>onLife(+1)} style={{background:"transparent",borderLeft:"1px solid rgba(255,255,255,.06)"}}>
+        <div className="big-tap"
+        onPointerDown={()=>{holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(+10);triggerDelta(+10);},800);}}
+        onPointerUp={()=>{clearTimeout(holdTimer.current);if(!holdFired.current){onLife(+1);triggerDelta(+1);}}}
+        onPointerLeave={()=>clearTimeout(holdTimer.current)}
+        style={{background:"transparent",borderLeft:"1px solid rgba(255,255,255,.06)"}}>
           <span style={{fontSize:compact?26:32,color:"rgba(255,255,255,.12)",fontWeight:900,fontFamily:"'Cinzel',serif"}}>+</span>
         </div>
       </div>
@@ -1125,6 +1162,7 @@ function App(){
     {id:"standings",icon:"",label:"Ranking"},
     {id:"history",icon:"",label:"History"},
     {id:"decks",  icon:"",label:"Decks"},
+    {id:"settings",icon:"⚙",label:""},
   ];
 
   /* ========================================================================== */
@@ -1245,48 +1283,6 @@ function App(){
               </Surface>
             )}
             <TealBtn onClick={startNewGame} red={true}>+ Record New Game</TealBtn>
-            {!soundEnabled&&(
-              <div onClick={()=>{unlockGlobalAudio();setSoundEnabled(true);}} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:12,padding:"10px 16px",borderRadius:8,border:"1px solid rgba(180,145,50,.35)",background:"rgba(20,16,28,.7)",cursor:"pointer"}}>
-                <span style={{fontSize:16}}>🔊</span>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:11,color:"#c8a060",letterSpacing:1}}>Tap to enable sound</span>
-              </div>
-            )}
-
-            {/* Export / Import data */}
-            <div style={{display:"flex",gap:8,marginTop:10}}>
-              <button onClick={()=>{
-                const data=localStorage.getItem(KEY);
-                if(!data){alert("No saved data found.");return;}
-                const blob=new Blob([data],{type:"application/json"});
-                const url=URL.createObjectURL(blob);
-                const a=document.createElement("a");
-                a.href=url;
-                a.download="fwl-backup-"+new Date().toISOString().slice(0,10)+".json";
-                a.click();
-                URL.revokeObjectURL(url);
-              }} style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid rgba(180,145,50,.3)",background:"rgba(20,16,28,.6)",color:"#a08040",fontFamily:"'Cinzel',serif",fontSize:10,fontWeight:700,letterSpacing:.8,cursor:"pointer",textTransform:"uppercase"}}>
-                ⬇ Export data
-              </button>
-              <label style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid rgba(180,145,50,.3)",background:"rgba(20,16,28,.6)",color:"#a08040",fontFamily:"'Cinzel',serif",fontSize:10,fontWeight:700,letterSpacing:.8,cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-                ⬆ Import data
-                <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{
-                  const file=e.target.files[0];
-                  if(!file) return;
-                  const reader=new FileReader();
-                  reader.onload=ev=>{
-                    try{
-                      const parsed=JSON.parse(ev.target.result);
-                      if(!parsed.games&&!parsed.decks){alert("Invalid backup file.");return;}
-                      localStorage.setItem(KEY,ev.target.result);
-                      alert("Data imported! The app will now reload.");
-                      window.location.reload();
-                    }catch{alert("Could not read file. Make sure it's a valid FWL backup.");}
-                  };
-                  reader.readAsText(file);
-                  e.target.value="";
-                }}/>
-              </label>
-            </div>
             {games.length===0&&<p style={{textAlign:"center",color:"#4a3e28",fontSize:13,marginTop:18,fontStyle:"italic"}}>No games yet -- start the chronicle.</p>}
           </div>
         )}
@@ -1472,7 +1468,7 @@ function App(){
                     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                       <Avatar idx={winner?.playerIdx??0} src={avatars[winner?.playerIdx??0]} size={44}/>
                       <div>
-                        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}><span className="chip-victory">WINNER</span><span style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:17,color:"#e8c87a"}}>{winner?.name}</span></div>
+                        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}><span style={{display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:4,background:\`\${wp.color}28\`,color:wp.color,border:\`1px solid \${wp.color}66\`,fontFamily:"'Cinzel',serif",fontSize:10,fontWeight:700,letterSpacing:.8}}>WINNER</span><span style={{fontFamily:"'Cinzel',serif",fontWeight:700,fontSize:17,color:"#e8c87a"}}>{winner?.name}</span></div>
                         {winner?.deck&&<span style={{fontSize:12,color:PARCHMENT_DIM,fontStyle:"italic"}}>{winner.deck}</span>}
                       </div>
                     </div>
@@ -1634,12 +1630,84 @@ function App(){
         )}
       </div>
 
+      {/* == SETTINGS ====================================================== */}
+        {screen==="settings"&&(
+          <div className="fade-up" style={{padding:"0 16px 20px"}}>
+            <ScreenTitle>Settings</ScreenTitle>
+
+            <Surface style={{padding:16,marginBottom:14}}>
+              <SLabel>Sound</SLabel>
+              <div onClick={()=>{unlockGlobalAudio();setSoundEnabled(true);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:8,border:\`1px solid \${soundEnabled?"rgba(80,160,80,.4)":"rgba(180,145,50,.35)"}\`,background:soundEnabled?"rgba(30,60,30,.4)":"rgba(20,16,28,.7)",cursor:"pointer"}}>
+                <span style={{fontSize:22}}>{soundEnabled?"🔊":"🔇"}</span>
+                <div>
+                  <div style={{fontFamily:"'Cinzel',serif",fontSize:12,color:soundEnabled?"#70c870":"#c8a060",fontWeight:700,letterSpacing:.8}}>{soundEnabled?"Sound enabled":"Tap to enable sound"}</div>
+                  <div style={{fontSize:10,color:PARCHMENT_DARK,marginTop:2,fontFamily:"'IM Fell English',serif"}}>Required for battle sounds &amp; eliminations on iOS</div>
+                </div>
+              </div>
+            </Surface>
+
+            <Surface style={{padding:16,marginBottom:14}}>
+              <SLabel>Data</SLabel>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <button onClick={()=>{
+                  const data=localStorage.getItem(KEY);
+                  if(!data){alert("No saved data found.");return;}
+                  const blob=new Blob([data],{type:"application/json"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");
+                  a.href=url;
+                  a.download="fwl-backup-"+new Date().toISOString().slice(0,10)+".json";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }} style={{width:"100%",padding:"12px 14px",borderRadius:8,border:"1px solid rgba(180,145,50,.3)",background:"rgba(20,16,28,.6)",color:"#c8a060",fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:700,letterSpacing:.8,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>⬇</span>
+                  <div>
+                    <div>Export Data</div>
+                    <div style={{fontSize:10,color:PARCHMENT_DARK,fontWeight:400,marginTop:2,fontFamily:"'IM Fell English',serif"}}>Save all games &amp; decks as a JSON backup</div>
+                  </div>
+                </button>
+                <label style={{width:"100%",padding:"12px 14px",borderRadius:8,border:"1px solid rgba(180,145,50,.3)",background:"rgba(20,16,28,.6)",color:"#c8a060",fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:700,letterSpacing:.8,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>⬆</span>
+                  <div>
+                    <div>Import Data</div>
+                    <div style={{fontSize:10,color:PARCHMENT_DARK,fontWeight:400,marginTop:2,fontFamily:"'IM Fell English',serif"}}>Restore from a JSON backup file</div>
+                  </div>
+                  <input type="file" accept=".json" style={{display:"none"}} onChange={e=>{
+                    const file=e.target.files[0];
+                    if(!file) return;
+                    const reader=new FileReader();
+                    reader.onload=ev=>{
+                      try{
+                        const parsed=JSON.parse(ev.target.result);
+                        if(!parsed.games&&!parsed.decks){alert("Invalid backup file.");return;}
+                        localStorage.setItem(KEY,ev.target.result);
+                        alert("Data imported! The app will now reload.");
+                        window.location.reload();
+                      }catch{alert("Could not read file.");}
+                    };
+                    reader.readAsText(file);
+                    e.target.value="";
+                  }}/>
+                </label>
+              </div>
+            </Surface>
+
+            <Surface style={{padding:16}}>
+              <SLabel>About</SLabel>
+              <div style={{fontFamily:"'IM Fell English',serif",fontSize:13,color:PARCHMENT_DIM,lineHeight:1.6}}>
+                <div style={{fontFamily:"'Cinzel Decorative',serif",fontSize:14,color:GOLD,marginBottom:6}}>Fellow Wizard Lords</div>
+                MTG Commander tracker for Bas, Koen, Matti &amp; Tjeerd.
+              </div>
+            </Surface>
+          </div>
+        )}
+
       {/* Bottom nav -- always visible */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"rgba(10,8,14,.98)",backdropFilter:"blur(20px)",borderTop:"1px solid rgba(90,72,120,.32)",boxShadow:"0 -6px 28px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.03)",padding:"0 4px",zIndex:200,paddingBottom:"env(safe-area-inset-bottom, 20px)"}}>
         <div style={{display:"flex",maxWidth:520,margin:"0 auto"}}>
           {NAV.map(({id,icon,label})=>{const on=screen===id;return(
             <button key={id} className="nav-item" onClick={()=>id==="newgame"?startNewGame():setScreen(id)} style={{color:on?GOLD_LIGHT:"#3a3448",textShadow:on?"0 0 10px rgba(220,190,80,.45)":"none"}}>
-              <span style={{fontSize:16,lineHeight:1}}>{icon}</span>
+              <span style={{fontSize:id==="settings"?22:16,lineHeight:1,color:"inherit"}}>{icon}</span>
               <span>{label}</span>
               {on&&<div style={{width:24,height:2,borderRadius:1,background:"linear-gradient(90deg,#7a1414,#c8901c,#7a1414)",marginTop:2,boxShadow:"0 0 8px rgba(180,120,20,.5)"}}/>}
             </button>
