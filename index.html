@@ -176,7 +176,7 @@ const css = \`
   /* Nav */
   .nav-item{
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-    padding:8px 2px 10px;border:none;background:transparent;cursor:pointer;transition:all .2s;
+    padding:6px 0 8px;border:none;background:transparent;cursor:pointer;transition:all .2s;
     font-family:'Cinzel',serif;font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
   }
 
@@ -1122,14 +1122,14 @@ function App(){
     {id:"home",   icon:"",label:"Home"},
     {id:"newgame",icon:"",label:"Record"},
     {id:"table",  icon:"",label:"Table"},
-    {id:"standings",icon:"",label:"Standings"},
+    {id:"standings",icon:"",label:"Ranking"},
     {id:"history",icon:"",label:"History"},
     {id:"decks",  icon:"",label:"Decks"},
   ];
 
   /* ========================================================================== */
   return(
-    <div onTouchStart={unlockGlobalAudio} style={{minHeight:"100vh",background:\`url(\${APP_BG}) center top / 100% auto repeat-y #0e0c10\`,fontFamily:"'IM Fell English',serif",color:PARCHMENT,paddingBottom:90,position:"relative"}}>
+    <div onTouchStart={unlockGlobalAudio} style={{minHeight:"100vh",background:\`url(\${APP_BG}) center top / 100% auto repeat-y #0e0c10\`,fontFamily:"'IM Fell English',serif",color:PARCHMENT,paddingBottom:110,position:"relative"}}>
       {/* Readability overlay */}
       <div style={{position:"fixed",inset:0,background:"rgba(6,3,2,.22)",pointerEvents:"none",zIndex:0}}/>
 
@@ -1599,7 +1599,7 @@ function App(){
       </div>
 
       {/* Bottom nav -- always visible */}
-      <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"rgba(10,8,14,.98)",backdropFilter:"blur(20px)",borderTop:"1px solid rgba(90,72,120,.32)",boxShadow:"0 -6px 28px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.03)",padding:"0 4px",zIndex:200}}>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"rgba(10,8,14,.98)",backdropFilter:"blur(20px)",borderTop:"1px solid rgba(90,72,120,.32)",boxShadow:"0 -6px 28px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.03)",padding:"0 4px",zIndex:200,paddingBottom:"env(safe-area-inset-bottom, 14px)"}}>
         <div style={{display:"flex",maxWidth:520,margin:"0 auto"}}>
           {NAV.map(({id,icon,label})=>{const on=screen===id;return(
             <button key={id} className="nav-item" onClick={()=>id==="newgame"?startNewGame():setScreen(id)} style={{color:on?GOLD_LIGHT:"#3a3448",textShadow:on?"0 0 10px rgba(220,190,80,.45)":"none"}}>
