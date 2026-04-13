@@ -1,4 +1,4 @@
-const CACHE = "fwl-v1";
+const CACHE = "fwl-v2";
 const ASSETS = ["./", "./index.html"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
