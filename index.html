@@ -646,6 +646,7 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
   const is90=(rotation===90||rotation===270);
   const p=PLAYERS[idx];
   const totalCmd=Object.values(cmdDmg||{}).reduce((a,b)=>a+b,0);
+  const maxCmd=Object.values(cmdDmg||{}).reduce((a,b)=>Math.max(a,b),0);
   const [showCmd,setShowCmd]=useState(false);
   const [delta,setDelta]=useState(0);
   const [deltaVisible,setDeltaVisible]=useState(false);
@@ -707,7 +708,7 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
               ))}
             </div>
           {/* Commander damage button */}
-          <button onClick={e=>{e.stopPropagation();setShowCmd(s=>!s);}} style={{width:"100%",padding:tiny?"1px 6px":compact?"2px 8px":"3px 12px",borderRadius:6,background:totalCmd>0?"rgba(140,80,200,.18)":"rgba(255,255,255,.05)",border:\`1px solid \${totalCmd>=21?DEAD_RED:totalCmd>0?"rgba(140,80,200,.5)":"rgba(255,255,255,.12)"}\`,color:totalCmd>=21?DEAD_RED:totalCmd>0?"#c090f0":"rgba(255,255,255,.35)",fontFamily:"'Cinzel',serif",fontWeight:600,fontSize:tiny?9:compact?10:11,cursor:"pointer",pointerEvents:"all",letterSpacing:.5}}>
+          <button onClick={e=>{e.stopPropagation();setShowCmd(s=>!s);}} style={{width:"100%",padding:tiny?"1px 6px":compact?"2px 8px":"3px 12px",borderRadius:6,background:totalCmd>0?"rgba(140,80,200,.18)":"rgba(255,255,255,.05)",border:\`1px solid \${maxCmd>=21?DEAD_RED:totalCmd>0?"rgba(140,80,200,.5)":"rgba(255,255,255,.12)"}\`,color:maxCmd>=21?DEAD_RED:totalCmd>0?"#c090f0":"rgba(255,255,255,.35)",fontFamily:"'Cinzel',serif",fontWeight:600,fontSize:tiny?9:compact?10:11,cursor:"pointer",pointerEvents:"all",letterSpacing:.5}}>
             &#x2694;&#xFE0F; CMD
           </button>
           {/* Delta indicator */}
@@ -815,15 +816,15 @@ function LifeTracker({activePlayers,avatars,setScreen,tableLife,setTableLife,tab
   useEffect(()=>{
     const totalPlayers=activePlayers.length;
     const currentElim=new Set(activePlayers.filter(pi=>{
-      const totalCmd=Object.values(cmdDmg[pi]||{}).reduce((a,b)=>a+b,0);
-      return life[pi]<=0||totalCmd>=21;
+      const cmdValues=Object.values(cmdDmg[pi]||{});
+      return life[pi]<=0||cmdValues.some(v=>v>=21);
     }));
     const newDeaths=[...currentElim].filter(pi=>!prevElim.current.has(pi));
     if(newDeaths.length>0){
       const count=currentElim.size;
       const alive=totalPlayers-count;
       // Check if any new death was from CMD damage
-      const isCmdDeath=newDeaths.some(pi=>Object.values(cmdDmg[pi]||{}).reduce((a,b)=>a+b,0)>=21);
+      const isCmdDeath=newDeaths.some(pi=>Object.values(cmdDmg[pi]||{}).some(v=>v>=21));
       if(alive===1){
         // Last player eliminated = winner
         setTimeout(()=>playTrackerSound(Math.random()<0.5?SND_WIN1:SND_WIN2),300);
@@ -855,9 +856,7 @@ function LifeTracker({activePlayers,avatars,setScreen,tableLife,setTableLife,tab
   function adjustCmdDmg(victim,attacker,delta){
     const prev=cmdDmg[victim]?.[attacker]||0;
     const next=Math.max(0,prev+delta);
-    const lifeDelta=-(next-prev);
     setCmdDmg(c=>({...c,[victim]:{...c[victim],[attacker]:next}}));
-    setLife(l=>({...l,[victim]:l[victim]+lifeDelta}));
   }
 
   function resetAll(){
@@ -868,8 +867,8 @@ function LifeTracker({activePlayers,avatars,setScreen,tableLife,setTableLife,tab
 }
 
   function isElim(pi){
-    const totalCmd=Object.values(cmdDmg[pi]||{}).reduce((a,b)=>a+b,0);
-    return life[pi]<=0||totalCmd>=21;
+    const cmdValues=Object.values(cmdDmg[pi]||{});
+    return life[pi]<=0||cmdValues.some(v=>v>=21);
   }
 
   const p=seated;
