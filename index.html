@@ -669,12 +669,9 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
 
   return(
     <div ref={panelRef}
-      onPointerDown={()=>{ if(onLongPress){ const t=setTimeout(onLongPress,600); panelRef._swapT=t; } }}
-      onPointerUp={()=>clearTimeout(panelRef._swapT)}
-      onPointerLeave={()=>clearTimeout(panelRef._swapT)}
       style={{width:"100%",height:"100%",position:"relative",overflow:"hidden",background:\`radial-gradient(ellipse at 50% 30%,\${p.color}28 0%,#0e0c10 65%)\`,outline:swapPending?"3px solid #e8c860":"none",outlineOffset:"-3px",borderRadius:8}}>
       {/* Big tap zones: left = minus, right = plus */}
-      <div style={is90&&dims.w>0?{
+      <div onPointerDown={e=>{if(onLongPress){const t=setTimeout(onLongPress,600);e.currentTarget._st=t;}}} onPointerUp={e=>clearTimeout(e.currentTarget._st)} onPointerLeave={e=>clearTimeout(e.currentTarget._st)} style={is90&&dims.w>0?{
         position:"absolute",
         width:dims.h,height:dims.w,
         top:"50%",left:"50%",
@@ -686,7 +683,7 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
       }}>
         {/* Minus zone */}
         <div className="big-tap"
-        onPointerDown={()=>{holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(-10);triggerDelta(-10);playGlobalSound(SND_DMG10);haptic(25);},800);}}
+        onPointerDown={e=>{const p=e.currentTarget.parentElement;if(p)clearTimeout(p._st);holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(-10);triggerDelta(-10);playGlobalSound(SND_DMG10);haptic(25);},800);}}
         onPointerUp={()=>{clearTimeout(holdTimer.current);if(!holdFired.current){onLife(-1);triggerDelta(-1);haptic();tapCount.current++;clearTimeout(tapReset.current);tapReset.current=setTimeout(()=>{tapCount.current=0;},1200);const v=Math.max(0.3,0.85-tapCount.current*0.07);playGlobalSound(SND_HIT,v);}}}
         onPointerLeave={()=>clearTimeout(holdTimer.current)}
         style={{background:"transparent",borderRight:"1px solid rgba(255,255,255,.06)"}}>
@@ -744,7 +741,7 @@ function PlayerPanel({idx,src,life,cmdDmg,opponents,onLife,onCmdDmg,rotation,isE
         )}
         {/* Plus zone */}
         <div className="big-tap"
-        onPointerDown={()=>{holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(+10);triggerDelta(+10);playGlobalSound(SND_HEAL10);haptic(25);},800);}}
+        onPointerDown={e=>{const p=e.currentTarget.parentElement;if(p)clearTimeout(p._st);holdFired.current=false;holdTimer.current=setTimeout(()=>{holdFired.current=true;onLife(+10);triggerDelta(+10);playGlobalSound(SND_HEAL10);haptic(25);},800);}}
         onPointerUp={()=>{clearTimeout(holdTimer.current);if(!holdFired.current){onLife(+1);triggerDelta(+1);haptic();tapCount.current++;clearTimeout(tapReset.current);tapReset.current=setTimeout(()=>{tapCount.current=0;},1200);const v=Math.max(0.3,0.85-tapCount.current*0.07);playGlobalSound(SND_HEAL,v);}}}
         onPointerLeave={()=>clearTimeout(holdTimer.current)}
         style={{background:"transparent",borderLeft:"1px solid rgba(255,255,255,.06)"}}>
